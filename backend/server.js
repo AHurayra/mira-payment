@@ -17,14 +17,24 @@ const app = express();
 // --------------------
 // CORS (must allow credentials for cookie auth)
 // --------------------
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://mira-payment.vercel.app",
+];
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error("CORS blocked: " + origin));
+    },
     credentials: true,
     methods: ["GET", "POST", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "stripe-signature"],
   })
 );
+
 
 app.use(cookieParser());
 
