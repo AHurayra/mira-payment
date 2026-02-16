@@ -1,53 +1,41 @@
 import "dotenv/config";
 import { google } from "googleapis";
 
-// ====== CONFIG (set these in Railway Variables) ======
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID; // required
-const SHEET_NAME = process.env.SHEET_NAME || "Sheet1"; // optional
-const HEADER_ROW = Number(process.env.HEADER_ROW || 1); // 1 means first row is headers
+const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+const SHEET_NAME = process.env.GOOGLE_SHEETS_TAB_NAME || "Sheet1";
+const HEADER_ROW = Number(process.env.HEADER_ROW || 1);
 
-// Accept credentials from any of these env vars:
-function getServiceAccountCreds() {
-  const raw =
-    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON ||
-    process.env.GOOGLE_APPLICATION_CREDENTIALS_B64 ||
-    process.env.GOOGLE_APPLICATION_CREDENTIALS;
+function getCredsFromEnv() {
+  const raw = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
   if (!raw) {
-    throw new Error(
-      "Missing Google credentials. Set GOOGLE_APPLICATION_CREDENTIALS_JSON (recommended) in Railway."
-    );
+    throw new Error("Missing GOOGLE_APPLICATION_CREDENTIALS (service account JSON).");
   }
 
-  // If they provided base64
-  if (raw.trim().startsWith("eyJ") || raw.includes("=")) {
-    // might be base64 JSON; try decode safely
-    try {
-      const json = Buffer.from(raw, "base64").toString("utf8");
-      if (json.trim().startsWith("{")) return JSON.parse(json);
-    } catch {}
-  }
-
-  // If they pasted JSON directly
+  // If pasted JSON directly
   if (raw.trim().startsWith("{")) {
     return JSON.parse(raw);
   }
 
-  // Otherwise treat as file path (local dev)
+  // If they used base64 by mistake
+  try {
+    const decoded = Buffer.from(raw, "base64").toString("utf8");
+    if (decoded.trim().startsWith("{")) return JSON.parse(decoded);
+  } catch {}
+
+  // Otherwise: treat as file path (local dev)
   return null;
 }
 
 async function getSheetsClient() {
   const scopes = ["https://www.googleapis.com/auth/spreadsheets"];
-
-  const creds = getServiceAccountCreds();
+  const creds = getCredsFromEnv();
 
   let auth;
   if (creds) {
-    // Use in-memory credentials (Railway safe)
     auth = new google.auth.GoogleAuth({ credentials: creds, scopes });
   } else {
-    // Fallback: file path (local dev)
+    // local dev path support
     auth = new google.auth.GoogleAuth({
       keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,
       scopes,
@@ -59,7 +47,8 @@ async function getSheetsClient() {
 }
 
 function ensureConfig() {
-  if (!SPREADSHEET_ID) throw new Error("Missing SPREADSHEET_ID env var.");
+  if (!SPREADSHEET_ID) throw new Error("Missing GOOGLE_SHEETS_SPREADSHEET_ID.");
+  if (!SHEET_NAME) throw new Error("Missing GOOGLE_SHEETS_TAB_NAME.");
 }
 
 export function rowToObject(headers, row) {
@@ -74,12 +63,10 @@ function a1(range) {
   return `${SHEET_NAME}!${range}`;
 }
 
-// Reads headers + all data rows
 export async function readAllRows() {
   ensureConfig();
   const sheets = await getSheetsClient();
 
-  // Get all values in the sheet
   const resp = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
     range: a1("A:ZZ"),
@@ -94,19 +81,18 @@ export async function readAllRows() {
   return { headers, dataRows };
 }
 
-// Find a row by Pay_Token
 export async function findRowByPayToken(payToken) {
   const token = String(payToken || "").trim();
   if (!token) return null;
 
   const { headers, dataRows } = await readAllRows();
+
   const idx = headers.findIndex((h) => String(h).trim() === "Pay_Token");
   if (idx === -1) throw new Error('Column "Pay_Token" not found in header row.');
 
   for (let i = 0; i < dataRows.length; i++) {
     const row = dataRows[i];
     if (String(row[idx] || "").trim() === token) {
-      // Actual sheet row number = header row + 1 + i
       const rowNumber = HEADER_ROW + 1 + i;
       return { headers, row, rowNumber };
     }
@@ -115,23 +101,22 @@ export async function findRowByPayToken(payToken) {
   return null;
 }
 
-// Patch a row by column names
 export async function patchRow(rowNumber, headers, patch) {
   ensureConfig();
   const sheets = await getSheetsClient();
 
-  // Read the full row first so we can update specific columns only
   const getResp = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
     range: a1(`A${rowNumber}:ZZ${rowNumber}`),
   });
 
-  const row = (getResp.data.values && getResp.data.values[0]) ? getResp.data.values[0] : [];
+  const row =
+    getResp.data.values && getResp.data.values[0] ? getResp.data.values[0] : [];
   const updated = [...row];
 
   for (const [key, value] of Object.entries(patch || {})) {
     const colIndex = headers.findIndex((h) => String(h).trim() === key);
-    if (colIndex === -1) continue; // ignore missing columns
+    if (colIndex === -1) continue;
     updated[colIndex] = value ?? "";
   }
 
