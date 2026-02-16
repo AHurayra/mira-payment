@@ -1,0 +1,276 @@
+*{
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+:root {
+  --size--small-txt: 14px;
+  --size--body-txt: 12px;
+}
+
+h1 {
+  margin-top: 0px;
+  margin-bottom: 0px;
+  font-size: 38px;
+  font-weight: bold;
+  line-height: 1.2;
+}
+
+p {
+  margin-bottom: 0;
+}
+
+.invoice_content {
+  grid-column-gap: 24px;
+  grid-row-gap: 24px;
+  color: #1a1c21;
+  background-color: #f9fafc;
+  flex-flow: column;
+  max-width: 896px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 24px 16px;
+  font-family: Inter, sans-serif;
+  display: flex;
+}
+
+.invo_header {
+  justify-content: space-between;
+  align-items: flex-end;
+  display: flex;
+}
+
+.invo_header_left {
+  justify-content: flex-start;
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+}
+
+.logo {
+  width: 72px;
+}
+
+.invo_header_left_txt {
+  grid-column-gap: 2px;
+  grid-row-gap: 2px;
+  flex-flow: column;
+  display: flex;
+}
+
+.invo_header_left_name {
+  margin-top: 0;
+  margin-bottom: 0;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.invo_header_left_web {
+  color: #5e6470;
+  font-size: var(--size--small-txt);
+  line-height: 1.4;
+}
+
+.invo_header_right_txt {
+  grid-column-gap: 2px;
+  grid-row-gap: 2px;
+  text-align: right;
+  flex-flow: column;
+  display: flex;
+}
+
+.invo_body {
+  grid-column-gap: 40px;
+  grid-row-gap: 40px;
+  background-color: #fff;
+  border: .5px solid #d7dae0;
+  border-radius: 12px;
+  flex-flow: column;
+  padding: 20px 16px;
+  display: flex;
+}
+
+.invo_footer {
+  grid-column-gap: 4px;
+  grid-row-gap: 4px;
+  flex-flow: column;
+  display: flex;
+}
+
+.footer_terms_txt {
+  font-size: var(--size--small-txt);
+  line-height: 1.4;
+}
+
+.footer_terms_txt.tm {
+  color: #5e6470;
+}
+
+.invo_body_header_txt {
+  grid-column-gap: 2px;
+  grid-row-gap: 2px;
+  flex-flow: column;
+  display: flex;
+}
+
+.invo_body_header_txt_wp {
+  grid-column-gap: 16px;
+  grid-row-gap: 16px;
+  grid-template-rows: auto;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-auto-columns: 1fr;
+  display: grid;
+}
+
+.invo_body_header {
+  grid-column-gap: 24px;
+  grid-row-gap: 24px;
+  flex-flow: column;
+  display: flex;
+}
+
+.invo_body_header_txt_dark {
+  font-size: var(--size--small-txt);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.invo_body_header_txt_light {
+  color: #5e6470;
+  font-size: var(--size--small-txt);
+  line-height: 1.4;
+}
+
+.invo_body_header_txt_light.mt24 {
+  margin-top: 16px;
+}
+
+.invo_total_amount {
+  color: #e87117;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.invo_body_footer {
+  grid-column-gap: 8px;
+  grid-row-gap: 8px;
+  flex-flow: column;
+  justify-content: flex-start;
+  align-items: center;
+  display: flex;
+}
+
+.invo_table_heading {
+  grid-column-gap: 16px;
+  grid-row-gap: 16px;
+  border-top: .5px solid #d7dae0;
+  grid-template-rows: auto;
+  grid-template-columns: 1fr 60px 60px;
+  grid-auto-columns: 1fr;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  display: grid;
+}
+
+.invo_table_heading_txt {
+  color: #5e6470;
+  font-size: var(--size--body-txt);
+  line-height: 1.5;
+}
+
+.invo_body_footnote {
+  font-size: var(--size--small-txt);
+  line-height: 1.4;
+}
+
+.payment-btn {
+  color: #fff;
+  text-align: center;
+  background-color: #b801b8;
+  border-radius: 48px;
+  padding: 12px 24px;
+  font-size: 14px;
+  border: 0;
+  cursor: pointer;
+  margin: auto;
+}
+
+.payment-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.invo_table{
+  display: flex;
+  flex-direction: column;
+}
+.invo_table_body_total {
+  border-top: 1px solid #d7dae0;
+  justify-content: flex-end;
+  align-items: center;
+  padding-top: 40px;
+  padding-bottom: 8px;
+  display: flex;
+  gap: 10px;
+}
+
+.invo_table_total_txt {
+  color: #5e6470;
+  font-size: var(--size--small-txt);
+  width: 60px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.invo_table_body_payment_status {
+  justify-content: center;
+  align-items: center;
+  padding-top: 20px;
+  padding-bottom: 20px;
+  display: flex;
+  gap: 16px;
+}
+
+.invo_table_payment_txt {
+  color: #5e6470;
+  font-size: var(--size--small-txt);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+/* ✅ QR extras */
+.qrWrap {
+  background: #fff;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.qr-url {
+  font-size: var(--size--small-txt);
+  color: #5e6470;
+  word-break: break-all;
+  text-align: center;
+  max-width: 520px;
+}
+
+.refresh-btn {
+  margin-top: 6px;
+  font-size: 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid #d7dae0;
+  background: #fff;
+  cursor: pointer;
+}
+.invo_table_payment_txt.paid{
+  padding: 4px 10px;
+  border-radius: 48px;
+  background: rgb(174, 255, 174);
+}
+.invo_table_payment_txt.unpaid{
+  padding: 4px 10px;
+  border-radius: 48px;
+  background: rgb(255, 187, 187);
+}
