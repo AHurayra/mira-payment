@@ -1,77 +1,143 @@
+import "dotenv/config";
 import { google } from "googleapis";
 
-function getAuth() {
-  return new google.auth.GoogleAuth({
-    keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  });
+// ====== CONFIG (set these in Railway Variables) ======
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID; // required
+const SHEET_NAME = process.env.SHEET_NAME || "Sheet1"; // optional
+const HEADER_ROW = Number(process.env.HEADER_ROW || 1); // 1 means first row is headers
+
+// Accept credentials from any of these env vars:
+function getServiceAccountCreds() {
+  const raw =
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON ||
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_B64 ||
+    process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
+  if (!raw) {
+    throw new Error(
+      "Missing Google credentials. Set GOOGLE_APPLICATION_CREDENTIALS_JSON (recommended) in Railway."
+    );
+  }
+
+  // If they provided base64
+  if (raw.trim().startsWith("eyJ") || raw.includes("=")) {
+    // might be base64 JSON; try decode safely
+    try {
+      const json = Buffer.from(raw, "base64").toString("utf8");
+      if (json.trim().startsWith("{")) return JSON.parse(json);
+    } catch {}
+  }
+
+  // If they pasted JSON directly
+  if (raw.trim().startsWith("{")) {
+    return JSON.parse(raw);
+  }
+
+  // Otherwise treat as file path (local dev)
+  return null;
 }
 
 async function getSheetsClient() {
-  const auth = getAuth();
+  const scopes = ["https://www.googleapis.com/auth/spreadsheets"];
+
+  const creds = getServiceAccountCreds();
+
+  let auth;
+  if (creds) {
+    // Use in-memory credentials (Railway safe)
+    auth = new google.auth.GoogleAuth({ credentials: creds, scopes });
+  } else {
+    // Fallback: file path (local dev)
+    auth = new google.auth.GoogleAuth({
+      keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+      scopes,
+    });
+  }
+
   const client = await auth.getClient();
   return google.sheets({ version: "v4", auth: client });
 }
 
-export async function readAllRows() {
-  const sheets = await getSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
-  const tab = process.env.GOOGLE_SHEETS_TAB_NAME;
-
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: `${tab}!A1:Z`,
-  });
-
-  const rows = res.data.values || [];
-  if (rows.length < 1) return { headers: [], dataRows: [] };
-
-  return { headers: rows[0], dataRows: rows.slice(1) };
-}
-
-export async function findRowByPayToken(payToken) {
-  const { headers, dataRows } = await readAllRows();
-
-  const tokenIdx = headers.indexOf("Pay_Token");
-  if (tokenIdx === -1) throw new Error("Missing column: Pay_Token");
-
-  for (let i = 0; i < dataRows.length; i++) {
-    const row = dataRows[i];
-    if ((row[tokenIdx] || "").trim() === payToken.trim()) {
-      return { rowNumber: i + 2, headers, row };
-    }
-  }
-  return null;
+function ensureConfig() {
+  if (!SPREADSHEET_ID) throw new Error("Missing SPREADSHEET_ID env var.");
 }
 
 export function rowToObject(headers, row) {
   const obj = {};
-  headers.forEach((h, i) => (obj[h] = row[i] ?? ""));
+  headers.forEach((h, i) => {
+    obj[String(h || "").trim()] = row[i] ?? "";
+  });
   return obj;
 }
 
-export async function patchRow(rowNumber, headers, patch) {
-  const sheets = await getSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
-  const tab = process.env.GOOGLE_SHEETS_TAB_NAME;
+function a1(range) {
+  return `${SHEET_NAME}!${range}`;
+}
 
-  const rowRes = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: `${tab}!A${rowNumber}:Z${rowNumber}`,
+// Reads headers + all data rows
+export async function readAllRows() {
+  ensureConfig();
+  const sheets = await getSheetsClient();
+
+  // Get all values in the sheet
+  const resp = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: a1("A:ZZ"),
   });
 
-  const current = (rowRes.data.values && rowRes.data.values[0]) || [];
-  const updated = [...current];
+  const values = resp.data.values || [];
+  const headerIndex = HEADER_ROW - 1;
 
-  for (const [key, value] of Object.entries(patch)) {
-    const idx = headers.indexOf(key);
-    if (idx === -1) continue;
-    updated[idx] = String(value ?? "");
+  const headers = values[headerIndex] || [];
+  const dataRows = values.slice(headerIndex + 1);
+
+  return { headers, dataRows };
+}
+
+// Find a row by Pay_Token
+export async function findRowByPayToken(payToken) {
+  const token = String(payToken || "").trim();
+  if (!token) return null;
+
+  const { headers, dataRows } = await readAllRows();
+  const idx = headers.findIndex((h) => String(h).trim() === "Pay_Token");
+  if (idx === -1) throw new Error('Column "Pay_Token" not found in header row.');
+
+  for (let i = 0; i < dataRows.length; i++) {
+    const row = dataRows[i];
+    if (String(row[idx] || "").trim() === token) {
+      // Actual sheet row number = header row + 1 + i
+      const rowNumber = HEADER_ROW + 1 + i;
+      return { headers, row, rowNumber };
+    }
+  }
+
+  return null;
+}
+
+// Patch a row by column names
+export async function patchRow(rowNumber, headers, patch) {
+  ensureConfig();
+  const sheets = await getSheetsClient();
+
+  // Read the full row first so we can update specific columns only
+  const getResp = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: a1(`A${rowNumber}:ZZ${rowNumber}`),
+  });
+
+  const row = (getResp.data.values && getResp.data.values[0]) ? getResp.data.values[0] : [];
+  const updated = [...row];
+
+  for (const [key, value] of Object.entries(patch || {})) {
+    const colIndex = headers.findIndex((h) => String(h).trim() === key);
+    if (colIndex === -1) continue; // ignore missing columns
+    updated[colIndex] = value ?? "";
   }
 
   await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range: `${tab}!A${rowNumber}:Z${rowNumber}`,
+    spreadsheetId: SPREADSHEET_ID,
+    range: a1(`A${rowNumber}:ZZ${rowNumber}`),
     valueInputOption: "RAW",
     requestBody: { values: [updated] },
   });
