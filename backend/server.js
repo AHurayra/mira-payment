@@ -135,11 +135,12 @@ app.post("/api/admin/login", (req, res) => {
   const token = signAdminToken();
 
   res.cookie("admin_session", token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: false, // set true on HTTPS production
-    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-  });
+  httpOnly: true,
+  sameSite: "none", // ✅ required for cross-site cookie
+  secure: true,     // ✅ required when sameSite is none (HTTPS)
+  maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+});
+
 
   res.json({ ok: true });
 });
@@ -147,10 +148,11 @@ app.post("/api/admin/login", (req, res) => {
 // Admin logout
 app.post("/api/admin/logout", (req, res) => {
   res.clearCookie("admin_session", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: false,
-  });
+  httpOnly: true,
+  sameSite: "none",
+  secure: true,
+});
+
   res.json({ ok: true });
 });
 
