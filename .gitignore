@@ -5,15 +5,12 @@ node_modules/
 .env
 .env.*
 
-# OS files
-.DS_Store
+# credentials (ignore ONLY service account)
+backend/service-account.json
 
-# logs
-npm-debug.log*
-
-# build outputs
+# build
 dist/
 build/
 
-# credentials
-*.json
+# OS
+.DS_Store
