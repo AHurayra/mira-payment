@@ -14,39 +14,35 @@ import AdminLogin from "./pages/AdminLogin.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 
-
-
 export default function App() {
   return (
     <div>
       <NavBar />
       <section className="section">
         <Routes>
-  <Route path="/" element={<StatusCheck />} />
-  <Route path="/invoice/:payToken" element={<InvoicePage />} />
-  <Route path="/pay/success" element={<PaySuccess />} />
-  <Route path="/pay/cancel" element={<PayCancel />} />
+          <Route path="/" element={<StatusCheck />} />
+          <Route path="/invoice/:payToken" element={<InvoicePage />} />
+          <Route path="/pay/success" element={<PaySuccess />} />
+          <Route path="/pay/cancel" element={<PayCancel />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
 
-  <Route path="/admin/login" element={<AdminLogin />} />
-
-  <Route
-    path="/dashboard"
-    element={
-      <ProtectedRoute>
-        <DashboardV2 />
-      </ProtectedRoute>
-    }
-  />
-
-  <Route
-    path="/customers"
-    element={
-      <ProtectedRoute>
-        <Customers />
-      </ProtectedRoute>
-    }
-  />
-</Routes>
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardV2 />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customers"
+            element={
+              <ProtectedRoute>
+                <Customers />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
       </section>
 
       
