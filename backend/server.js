@@ -67,6 +67,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // ✅ Stripe webhook FIRST (raw body)
 // Stripe webhook FIRST
+// --------------------
+// Stripe Webhook
+// --------------------
 app.post(
   "/webhook/stripe",
   express.raw({ type: "application/json" }),
@@ -82,15 +85,61 @@ app.post(
         process.env.STRIPE_WEBHOOK_SECRET
       );
     } catch (err) {
-      console.error(err.message);
+      console.error("Webhook signature error:", err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // success logic here
+    try {
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object;
 
-    res.json({ received: true });
+        let payToken = session?.metadata?.pay_token;
+
+        // fallback: find by session id
+        if (!payToken) {
+          const { headers, dataRows } = await readAllRows();
+          const list = dataRows.map((r) => rowToObject(headers, r));
+
+          const match = list.find(
+            (x) =>
+              String(x.Stripe_Session_ID || "").trim() ===
+              String(session.id || "").trim()
+          );
+
+          if (match) payToken = match.Pay_Token;
+        }
+
+        if (!payToken) {
+          console.log("Webhook: payToken not found");
+          return res.json({ received: true });
+        }
+
+        const found = await findRowByPayToken(payToken);
+
+        if (!found) {
+          console.log("Webhook: row not found for token:", payToken);
+          return res.json({ received: true });
+        }
+
+        await patchRow(found.rowNumber, found.headers, {
+          Payment_Status: "Paid",
+          Stripe_Session_ID: session.id,
+          Stripe_Payment_Intent: session.payment_intent || "",
+          Paid_At: new Date().toISOString(),
+        });
+
+        console.log("Webhook: updated Payment_Status to Paid for", payToken);
+      }
+
+      return res.json({ received: true });
+
+    } catch (err) {
+      console.error("Webhook processing error:", err);
+      return res.status(500).json({ error: err.message });
+    }
   }
 );
+
 
 // express.json AFTER webhook
 app.use(express.json());
