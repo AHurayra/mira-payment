@@ -508,3 +508,41 @@ app.get("/debug/write/:payToken", async (req, res) => {
   res.json({ ok: true });
 });
 
+if (event.type === "checkout.session.completed") {
+  const session = event.data.object;
+
+  // Try metadata first
+  let payToken = session?.metadata?.pay_token;
+
+  // Fallback: if metadata missing, find row by Stripe_Session_ID (session.id)
+  if (!payToken) {
+    const { headers, dataRows } = await readAllRows();
+    const list = dataRows.map((r) => rowToObject(headers, r));
+
+    const match = list.find(
+      (x) => String(x.Stripe_Session_ID || "").trim() === String(session.id || "").trim()
+    );
+
+    if (match) payToken = match.Pay_Token;
+  }
+
+  if (!payToken) {
+    console.log("Webhook: no payToken found for session", session?.id);
+    return res.json({ received: true });
+  }
+
+  const found = await findRowByPayToken(payToken);
+  if (!found) {
+    console.log("Webhook: payToken not found in sheet:", payToken);
+    return res.json({ received: true });
+  }
+
+  await patchRow(found.rowNumber, found.headers, {
+    Payment_Status: "Paid",
+    Stripe_Session_ID: session.id,
+    Stripe_Payment_Intent: session.payment_intent || "",
+    Paid_At: new Date().toISOString(),
+  });
+
+  console.log("Webhook: updated sheet to Paid for", payToken);
+}
