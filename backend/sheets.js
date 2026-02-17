@@ -127,3 +127,17 @@ export async function patchRow(rowNumber, headers, patch) {
     requestBody: { values: [updated] },
   });
 }
+
+app.get("/debug/write/:payToken", async (req, res) => {
+  const found = await findRowByPayToken(req.params.payToken);
+  if (!found) return res.status(404).json({ error: "Token not found" });
+
+  await patchRow(found.rowNumber, found.headers, {
+    Payment_Status: "Paid",
+    Paid_At: new Date().toISOString(),
+  });
+
+  res.json({ ok: true, rowNumber: found.rowNumber });
+});
+
+if (colIndex === -1) throw new Error(`Column "${key}" not found`);

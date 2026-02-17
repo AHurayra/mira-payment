@@ -96,6 +96,19 @@ app.post(
 app.use(express.json());
 
 
+app.get("/debug/sheet-write/:payToken", async (req, res) => {
+  const payToken = req.params.payToken;
+
+  const found = await findRowByPayToken(payToken);
+  if (!found) return res.status(404).json({ error: "Not found in sheet" });
+
+  await patchRow(found.rowNumber, found.headers, {
+    Payment_Status: "Paid",
+    Paid_At: new Date().toISOString(),
+  });
+
+  res.json({ ok: true, row: found.rowNumber });
+});
 
 /**
  * --------------------
