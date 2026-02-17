@@ -127,6 +127,3 @@ export async function patchRow(rowNumber, headers, patch) {
     requestBody: { values: [updated] },
   });
 }
-
-
-if (colIndex === -1) throw new Error(`Column "${key}" not found`);
