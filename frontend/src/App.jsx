@@ -22,31 +22,31 @@ export default function App() {
       <NavBar />
       <section className="section">
         <Routes>
-          <Route path="/" element={<StatusCheck />} />
-          {/* <Route path="/dashboard" element={<Dashboard />} /> */}
-          <Route path="/invoice/:payToken" element={<InvoicePage />} />
-          <Route path="/pay/success" element={<PaySuccess />} />
-          <Route path="/pay/cancel" element={<PayCancel />} />
-          <Route path="/customers" element={<Customers />} />
-          
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route
-  path="/dashboard"
-  element={
-    <ProtectedRoute>
-      <DashboardV2 />
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/customers"
-  element={
-    <ProtectedRoute>
-      <Customers />
-    </ProtectedRoute>
-  }
-/>
-        </Routes>
+  <Route path="/" element={<StatusCheck />} />
+  <Route path="/invoice/:payToken" element={<InvoicePage />} />
+  <Route path="/pay/success" element={<PaySuccess />} />
+  <Route path="/pay/cancel" element={<PayCancel />} />
+
+  <Route path="/admin/login" element={<AdminLogin />} />
+
+  <Route
+    path="/dashboard"
+    element={
+      <ProtectedRoute>
+        <DashboardV2 />
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/customers"
+    element={
+      <ProtectedRoute>
+        <Customers />
+      </ProtectedRoute>
+    }
+  />
+</Routes>
       </section>
 
       
