@@ -65,57 +65,16 @@ app.use(cookieParser());
  */
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// app.post("/webhook/stripe", express.raw({ type: "application/json" }), async (req, res) => {
-//   const sig = req.headers["stripe-signature"];
-
-//   let event;
-//   try {
-//     event = stripe.webhooks.constructEvent(
-//       req.body,
-//       sig,
-//       process.env.STRIPE_WEBHOOK_SECRET
-//     );
-//   } catch (err) {
-//     return res.status(400).send(`Webhook Error: ${err.message}`);
-//   }
-
-//   try {
-//     if (event.type === "checkout.session.completed") {
-//       const session = event.data.object;
-//       const payToken = session?.metadata?.pay_token;
-
-//       if (payToken) {
-//         const found = await findRowByPayToken(payToken);
-//         if (found) {
-//           await patchRow(found.rowNumber, found.headers, {
-//             Payment_Status: "Paid",
-//             Stripe_Session_ID: session.id,
-//             Stripe_Payment_Intent: session.payment_intent || "",
-//             Paid_At: new Date().toISOString(),
-//           });
-//         }
-//       }
-//     }
-//   } catch (e) {
-//     console.error("Webhook handler error:", e);
-//     // still return 200 so Stripe doesn't retry forever due to your internal bug
-//   }
-
-//   res.json({ received: true });
-// });
-
+// ✅ Stripe webhook FIRST (raw body)
+// Stripe webhook FIRST
 app.post(
   "/webhook/stripe",
   express.raw({ type: "application/json" }),
   async (req, res) => {
-    console.log("✅ webhook hit");
-    console.log("stripe-signature header exists?", !!req.headers["stripe-signature"]);
-    console.log("body is Buffer?", Buffer.isBuffer(req.body));
-    console.log("body length:", req.body?.length);
-
     const sig = req.headers["stripe-signature"];
 
     let event;
+
     try {
       event = stripe.webhooks.constructEvent(
         req.body,
@@ -123,18 +82,20 @@ app.post(
         process.env.STRIPE_WEBHOOK_SECRET
       );
     } catch (err) {
-      console.error("❌ Webhook signature error:", err.message);
+      console.error(err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // ... your existing code
+    // success logic here
+
     res.json({ received: true });
   }
 );
 
-
-// JSON routes AFTER webhook
+// express.json AFTER webhook
 app.use(express.json());
+
+
 
 /**
  * --------------------
