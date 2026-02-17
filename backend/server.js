@@ -495,3 +495,16 @@ const PORT = process.env.PORT || 4242;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+app.get("/debug/write/:payToken", async (req, res) => {
+  const found = await findRowByPayToken(req.params.payToken);
+  if (!found) return res.status(404).json({ error: "Not found" });
+
+  await patchRow(found.rowNumber, found.headers, {
+    Payment_Status: "Paid",
+    Paid_At: new Date().toISOString(),
+  });
+
+  res.json({ ok: true });
+});
+
