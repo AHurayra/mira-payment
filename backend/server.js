@@ -14,35 +14,46 @@ import {
 
 const app = express();
 
-/**
- * --------------------
- * CORS (allow cookies)
- * --------------------
- * Add ALL frontend origins that will call admin APIs:
- * - local dev
- * - vercel preview/prod
- * - your custom frontend domain (if you use it)
- */
+// --------------------
+// CORS (PRODUCTION SAFE)
+// --------------------
 const allowedOrigins = [
   "http://localhost:5173",
   "https://mira-payment.vercel.app",
-  // Add your custom frontend domain if you use it:
-  // "https://pay.e-rxhub.com",
-  // "https://e-rxhub.com",
+  "https://pay.e-rxhub.com",
+  "https://www.pay.e-rxhub.com",
+  "https://e-rxhub.com",
+  "https://www.e-rxhub.com",
 ];
 
 app.use(
   cors({
-    origin: (origin, cb) => {
-      if (!origin) return cb(null, true); // curl/postman/server-to-server
-      if (allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error("CORS blocked: " + origin));
+    origin: function (origin, callback) {
+      // allow non-browser tools (curl, stripe webhook)
+      if (!origin) return callback(null, true);
+
+      // allow exact matches
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // allow any subdomain of e-rxhub.com
+      if (origin.endsWith(".e-rxhub.com")) {
+        return callback(null, true);
+      }
+
+      console.error("CORS blocked origin:", origin);
+      callback(null, false);
     },
     credentials: true,
     methods: ["GET", "POST", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "stripe-signature"],
   })
 );
+
+// IMPORTANT: handle OPTIONS preflight
+app.options("*", cors());
+
 
 app.use(cookieParser());
 
